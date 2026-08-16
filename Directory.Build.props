@@ -1,0 +1,29 @@
+<Project>
+	<PropertyGroup Label="Tooling">
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+
+	<PropertyGroup Label="Packaging">
+		<Authors>Ingenium Software Engineering</Authors>
+		<Company>Ingenium Software Engineering Limited</Company>
+		<Copyright>Copyright (c) Ingenium Software Engineering Limited</Copyright>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/IngeniumSE/BuildCLI</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/IngeniumSE/BuildCLI</PackageProjectUrl>
+	</PropertyGroup>
+
+	<PropertyGroup Label="Conventions">
+		<Ing_ProjectType Condition="$(MSBuildProjectName.EndsWith('Tests')) And '$(Ing_ProjectType)'==''">Test</Ing_ProjectType>
+		<RootNamespace Condition="$(MSBuildProjectName.EndsWith('.Tests'))">$(MSBuildProjectName.Replace('.Tests', ''))</RootNamespace>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Ing_ProjectType)'=='Test'" Label="Testing">
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+</Project>
