@@ -28,7 +28,7 @@ public sealed class ProcessRunner : IProcessRunner
 	{
 		try
 		{
-			using var process = Start(fileName, ["--version"], Environment.CurrentDirectory, inheritOutput: false);
+			using var process = Start(ResolveFileName(fileName), ["--version"], Environment.CurrentDirectory, inheritOutput: false);
 			process.WaitForExit(5000);
 			return process.ExitCode == 0;
 		}
@@ -55,6 +55,7 @@ public sealed class ProcessRunner : IProcessRunner
 			throw new BuildCliException($"Working directory '{workingDirectory}' does not exist.");
 		}
 
+		fileName = ResolveFileName(fileName);
 		_trace?.Write($"$ {fileName} {string.Join(' ', arguments)}");
 
 		using var process = Start(fileName, arguments, workingDirectory, inheritOutput);
@@ -133,6 +134,7 @@ public sealed class ProcessRunner : IProcessRunner
 
 		startInfo.Environment["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
 		startInfo.Environment["DOTNET_NOLOGO"] = "1";
+		ConfigureDotnetEnvironment(startInfo, fileName);
 
 		var process = new System.Diagnostics.Process { StartInfo = startInfo };
 		if (!process.Start())
@@ -141,5 +143,47 @@ public sealed class ProcessRunner : IProcessRunner
 		}
 
 		return process;
+	}
+
+	private static string ResolveFileName(string fileName)
+	{
+		if (!DotnetMuxer.IsMuxerName(fileName) || Path.IsPathRooted(fileName))
+		{
+			return fileName;
+		}
+
+		return DotnetMuxer.Resolve() ?? fileName;
+	}
+
+	private static void ConfigureDotnetEnvironment(ProcessStartInfo startInfo, string fileName)
+	{
+		if (!DotnetMuxer.IsMuxerName(fileName))
+		{
+			return;
+		}
+
+		string fullPath;
+		try
+		{
+			fullPath = Path.GetFullPath(fileName);
+		}
+		catch (ArgumentException)
+		{
+			return;
+		}
+
+		if (!File.Exists(fullPath))
+		{
+			return;
+		}
+
+		var root = Path.GetDirectoryName(fullPath);
+		if (string.IsNullOrEmpty(root))
+		{
+			return;
+		}
+
+		startInfo.Environment["DOTNET_ROOT"] = root;
+		startInfo.Environment["DOTNET_HOST_PATH"] = fullPath;
 	}
 }

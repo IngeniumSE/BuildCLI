@@ -33,7 +33,7 @@ public sealed class SelfUpdateService : ISelfUpdateService
 		if (!_processes.IsAvailable("dotnet"))
 		{
 			throw new BuildCliException(
-				"dotnet was not found on PATH. Install the .NET SDK and try again.",
+				"The .NET SDK was not found. Install it or add the SDK to PATH. The installer places it at ~/.dotnet.",
 				ExitCodes.BuildFailed);
 		}
 
