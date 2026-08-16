@@ -106,10 +106,10 @@ public static class BuildCliApplication
 			.WithExample("repair", "--strategy", "reinit", "--tag", "v1.2.3", "--yes");
 
 		config.AddCommand<BuildCommand>("build")
-			.WithDescription("Run a Cake target through the Build submodule. This is the default when no command is passed.")
+			.WithDescription("Run a Cake target through the Build submodule. This is the default when no command is passed, and unknown commands are forwarded here.")
 			.WithExample("build")
-			.WithExample("build", "TestProjects")
-			.WithExample("build", "Default", "--configuration", "Release");
+			.WithExample("build", "Test")
+			.WithExample("build", "Publish", "--", "--publish", "--nuget");
 
 		config.AddCommand<ExtensionCommand>("extension")
 			.WithDescription("Create a Cake build-extension project in build-extensions/.")
