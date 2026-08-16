@@ -17,6 +17,8 @@ public static class CommandLineDefaults
 	{
 		"init",
 		"update",
+		"self-update",
+		"upgrade",
 		"status",
 		"tags",
 		"repair",
@@ -43,7 +45,11 @@ public static class CommandLineDefaults
 		"-t",
 		"--tag",
 		"-s",
-		"--strategy"
+		"--strategy",
+		"--ref",
+		"--source",
+		"--install-dir",
+		"--bin-dir"
 	};
 
 	private static readonly HashSet<string> CliFlagOptions = new(StringComparer.OrdinalIgnoreCase)
@@ -53,7 +59,8 @@ public static class CommandLineDefaults
 		"-f",
 		"--force",
 		"-y",
-		"--yes"
+		"--yes",
+		"--framework-dependent"
 	};
 
 	/// <summary>
