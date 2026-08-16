@@ -23,6 +23,8 @@ public sealed class CommandLineDefaultsTests
 	{
 		Assert.Equal(["init", "--tag", "v1.0.0"], CommandLineDefaults.Apply(["init", "--tag", "v1.0.0"]));
 		Assert.Equal(["status"], CommandLineDefaults.Apply(["status"]));
+		Assert.Equal(["self-update", "--ref", "main"], CommandLineDefaults.Apply(["self-update", "--ref", "main"]));
+		Assert.Equal(["upgrade"], CommandLineDefaults.Apply(["upgrade"]));
 	}
 
 	[Fact]
@@ -60,6 +62,8 @@ public sealed class CommandLineDefaultsTests
 	public void IsKnownCommand_RecognizesFirstClassCommands()
 	{
 		Assert.True(CommandLineDefaults.IsKnownCommand("init"));
+		Assert.True(CommandLineDefaults.IsKnownCommand("self-update"));
+		Assert.True(CommandLineDefaults.IsKnownCommand("upgrade"));
 		Assert.False(CommandLineDefaults.IsKnownCommand("Test"));
 	}
 }

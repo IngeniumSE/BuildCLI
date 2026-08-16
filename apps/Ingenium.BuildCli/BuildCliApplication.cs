@@ -8,6 +8,7 @@ using Ingenium.BuildCli.Host;
 using Ingenium.BuildCli.Infrastructure;
 using Ingenium.BuildCli.Execution;
 using Ingenium.BuildCli.Rendering;
+using Ingenium.BuildCli.SelfUpdate;
 using Ingenium.BuildCli.Submodule;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -35,6 +36,7 @@ public static class BuildCliApplication
 		services.AddSingleton<IBuildSubmoduleService, BuildSubmoduleService>();
 		services.AddSingleton<IBuildHostService, BuildHostService>();
 		services.AddSingleton<IBuildExtensionService, BuildExtensionService>();
+		services.AddSingleton<ISelfUpdateService, SelfUpdateService>();
 		configureServices?.Invoke(services);
 
 		var app = new CommandApp(new TypeRegistrar(services));
@@ -89,6 +91,16 @@ public static class BuildCliApplication
 			.WithDescription("Update the Build submodule to the latest tag or a specific version.")
 			.WithExample("update")
 			.WithExample("update", "--tag", "v1.2.3");
+
+		config.AddCommand<SelfUpdateCommand>("self-update")
+			.WithDescription("Update the installed bld CLI from the BuildCLI repository. Does not change the Build submodule.")
+			.WithExample("self-update")
+			.WithExample("self-update", "--ref", "main")
+			.WithExample("self-update", "--source", ".");
+
+		config.AddCommand<SelfUpdateCommand>("upgrade")
+			.WithDescription("Alias for self-update.")
+			.WithExample("upgrade");
 
 		config.AddCommand<StatusCommand>("status")
 			.WithDescription("Show the current Build submodule state.")

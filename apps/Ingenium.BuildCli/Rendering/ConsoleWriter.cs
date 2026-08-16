@@ -2,6 +2,7 @@
 // For a copy, see <https://opensource.org/licenses/MIT>.
 
 using Ingenium.BuildCli.Extensions;
+using Ingenium.BuildCli.SelfUpdate;
 using Ingenium.BuildCli.Submodule;
 
 using Spectre.Console;
@@ -133,6 +134,38 @@ public static class ConsoleWriter
 
 		console.WriteLine();
 		console.MarkupLine("[grey]The Build host imports every project under build-extensions/ automatically.[/]");
+	}
+
+	/// <summary>
+	/// Writes a successful self-update summary.
+	/// </summary>
+	public static void WriteSelfUpdate(IAnsiConsole console, SelfUpdateResult result)
+	{
+		var table = new Table()
+			.Border(TableBorder.Rounded)
+			.HideHeaders()
+			.AddColumn(new TableColumn("Key").PadRight(2))
+			.AddColumn("Value");
+
+		table.AddRow("[grey]Version[/]", Markup.Escape(result.Version));
+		table.AddRow("[grey]Runtime[/]", Markup.Escape(result.RuntimeIdentifier));
+		table.AddRow("[grey]Ref[/]", Markup.Escape(result.Ref));
+		table.AddRow("[grey]Installed[/]", Markup.Escape(result.ExecutablePath));
+		if (!string.IsNullOrEmpty(result.BinLink))
+		{
+			table.AddRow("[grey]Link[/]", Markup.Escape(result.BinLink));
+		}
+
+		console.Write(table);
+
+		if (!result.BinDirectoryOnPath)
+		{
+			var hint = OperatingSystem.IsWindows()
+				? Path.GetDirectoryName(result.ExecutablePath) ?? result.ExecutablePath
+				: Path.GetDirectoryName(result.BinLink ?? result.ExecutablePath) ?? result.ExecutablePath;
+			console.WriteLine();
+			console.MarkupLine($"[yellow]bld may not be on PATH.[/] Add {Markup.Escape(hint)} to PATH and reopen the terminal.");
+		}
 	}
 
 	/// <summary>

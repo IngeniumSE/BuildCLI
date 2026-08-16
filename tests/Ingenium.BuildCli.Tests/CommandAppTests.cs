@@ -2,6 +2,7 @@
 // For a copy, see <https://opensource.org/licenses/MIT>.
 
 using Ingenium.BuildCli.Git;
+using Ingenium.BuildCli.SelfUpdate;
 using Ingenium.BuildCli.Submodule;
 using Ingenium.BuildCli.Tests.Support;
 
@@ -32,6 +33,54 @@ public sealed class CommandAppTests
 		Assert.Contains("repair", output, StringComparison.OrdinalIgnoreCase);
 		Assert.Contains("build", output, StringComparison.OrdinalIgnoreCase);
 		Assert.Contains("extension", output, StringComparison.OrdinalIgnoreCase);
+		Assert.Contains("self-update", output, StringComparison.OrdinalIgnoreCase);
+	}
+
+	[Fact]
+	public async Task SelfUpdateHelp_DescribesRefOption()
+	{
+		var console = new TestConsole();
+		var app = CreateApp(console);
+		var exitCode = await app.RunAsync(["self-update", "--help"]);
+
+		Assert.Equal(0, exitCode);
+		Assert.Contains("--ref", console.Output, StringComparison.OrdinalIgnoreCase);
+		Assert.Contains("--source", console.Output, StringComparison.OrdinalIgnoreCase);
+	}
+
+	[Fact]
+	public async Task SelfUpdate_InvokesRegisteredService()
+	{
+		var console = new TestConsole();
+		var service = new StubSelfUpdateService();
+		var app = BuildCliApplication.Create(console, services =>
+		{
+			services.AddSingleton<ISelfUpdateService>(_ => service);
+		});
+
+		var exitCode = await app.RunAsync(["self-update", "--source", "/tmp/buildcli", "--install-dir", "/tmp/bld"]);
+
+		Assert.Equal(0, exitCode);
+		Assert.NotNull(service.Request);
+		Assert.Equal("/tmp/buildcli", service.Request.Source);
+		Assert.Equal("/tmp/bld", service.Request.InstallDirectory);
+		Assert.Contains("Updated", console.Output, StringComparison.OrdinalIgnoreCase);
+	}
+
+	[Fact]
+	public async Task Upgrade_IsAliasForSelfUpdate()
+	{
+		var console = new TestConsole();
+		var service = new StubSelfUpdateService();
+		var app = BuildCliApplication.Create(console, services =>
+		{
+			services.AddSingleton<ISelfUpdateService>(_ => service);
+		});
+
+		var exitCode = await app.RunAsync(["upgrade"]);
+
+		Assert.Equal(0, exitCode);
+		Assert.NotNull(service.Request);
 	}
 
 	[Fact]
@@ -133,5 +182,25 @@ public sealed class CommandAppTests
 		{
 			services.AddSingleton<IGitClient>(_ => GitTestWorkspace.CreateClient());
 		});
+	}
+
+	private sealed class StubSelfUpdateService : ISelfUpdateService
+	{
+		public SelfUpdateRequest? Request { get; private set; }
+
+		public Task<SelfUpdateResult> UpdateAsync(SelfUpdateRequest request, CancellationToken cancellationToken = default)
+		{
+			Request = request;
+			return Task.FromResult(new SelfUpdateResult
+			{
+				ExecutablePath = "/tmp/bld/bld",
+				Version = "0.1.0",
+				RuntimeIdentifier = "linux-x64",
+				Ref = request.Ref ?? "main",
+				Source = request.Source ?? "/tmp/source",
+				BinLink = "/tmp/bin/bld",
+				BinDirectoryOnPath = true
+			});
+		}
 	}
 }
