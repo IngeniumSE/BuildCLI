@@ -3,11 +3,11 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net8.0</TargetFramework>
-		<AssemblyName>buildcli</AssemblyName>
+		<AssemblyName>bld</AssemblyName>
 		<RootNamespace>Ingenium.BuildCli</RootNamespace>
 		<Description>CLI for adding and updating the Ingenium Build git submodule.</Description>
 		<PackAsTool>true</PackAsTool>
-		<ToolCommandName>buildcli</ToolCommandName>
+		<ToolCommandName>bld</ToolCommandName>
 		<PackageId>Ingenium.BuildCli</PackageId>
 		<PackageTags>ingenium;build;git;submodule;cli</PackageTags>
 		<Version>0.1.0</Version>

@@ -3,4 +3,4 @@
 
 using Ingenium.BuildCli;
 
-return await BuildCliApplication.Create().RunAsync(args);
+return await BuildCliApplication.RunAsync(args);

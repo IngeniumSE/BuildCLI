@@ -34,17 +34,11 @@ public sealed class BuildHostService : IBuildHostService
 		}
 
 		var status = await _submodules.GetStatusAsync(request.Repository, cancellationToken);
-		if (!status.IsRegistered)
+		BuildSubmoduleGuard.EnsureInitialized(status);
+		if (string.IsNullOrWhiteSpace(status.RelativePath))
 		{
 			throw new BuildCliException(
-				"The Build submodule is not registered in this repository. Run 'buildcli init' first.",
-				ExitCodes.SubmoduleNotFound);
-		}
-
-		if (!status.IsInitialized || string.IsNullOrWhiteSpace(status.RelativePath))
-		{
-			throw new BuildCliException(
-				"The Build submodule is not initialized. Run 'buildcli init' or 'buildcli repair --strategy reinit'.",
+				$"The Build submodule path could not be resolved. Run '{CliInfo.Name} init' first.",
 				ExitCodes.SubmoduleNotFound);
 		}
 

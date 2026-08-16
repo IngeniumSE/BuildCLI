@@ -1,11 +1,11 @@
-# Installs buildcli onto PATH for Windows.
+# Installs bld onto PATH for Windows.
 # Usage:
 #   ./scripts/install.ps1
 #   irm https://raw.githubusercontent.com/IngeniumSE/BuildCLI/main/scripts/install.ps1 | iex
 [CmdletBinding()]
 param(
 	[string] $RepoUrl = $(if ($env:BUILDCLI_REPO_URL) { $env:BUILDCLI_REPO_URL } else { "https://github.com/IngeniumSE/BuildCLI.git" }),
-	[string] $InstallDir = $(if ($env:BUILDCLI_INSTALL_DIR) { $env:BUILDCLI_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "Ingenium\BuildCli" }),
+	[string] $InstallDir = $(if ($env:BLD_INSTALL_DIR) { $env:BLD_INSTALL_DIR } elseif ($env:BUILDCLI_INSTALL_DIR) { $env:BUILDCLI_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "Ingenium\bld" }),
 	[switch] $FrameworkDependent
 )
 
@@ -47,7 +47,7 @@ function Get-SourceDirectory {
 	}
 
 	if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-		throw "git is required to install buildcli."
+		throw "git is required to install bld."
 	}
 
 	$checkout = Join-Path $env:TEMP ("buildcli-src-" + [Guid]::NewGuid().ToString("N"))
@@ -78,14 +78,14 @@ function Add-ToUserPath {
 
 Ensure-Dotnet
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-	throw "git is required to install buildcli."
+	throw "git is required to install bld."
 }
 
 $sourceDir = Get-SourceDirectory
 $rid = Get-Rid
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
-Write-Log "Publishing buildcli for $rid"
+Write-Log "Publishing bld for $rid"
 $publishArgs = @(
 	"publish", (Join-Path $sourceDir "apps\Ingenium.BuildCli\Ingenium.BuildCli.csproj"),
 	"-c", "Release",
@@ -110,7 +110,7 @@ if ($LASTEXITCODE -ne 0) {
 	throw "dotnet publish failed."
 }
 
-$executable = Join-Path $InstallDir "buildcli.exe"
+$executable = Join-Path $InstallDir "bld.exe"
 if (-not (Test-Path $executable)) {
 	throw "Publish succeeded but $executable was not produced."
 }
@@ -121,4 +121,4 @@ $env:PATH = "$InstallDir;$env:PATH"
 Write-Log "Installed $executable"
 Write-Log "Added $InstallDir to the user PATH"
 Write-Host ""
-Write-Host "Open a new terminal, then run: buildcli --help"
+Write-Host "Open a new terminal, then run: bld --help"

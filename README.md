@@ -6,23 +6,27 @@ The tool is written in C# and uses [Spectre.Console](https://spectreconsole.net/
 
 ## Commands
 
-Run `buildcli` from any git repository that should host the Build submodule.
+Run `bld` from any git repository that should host the Build submodule.
+
+A bare `bld` (no command) runs `build` after verifying that the Build submodule is initialized. If it is missing, the CLI stops and tells you to run `bld init`.
 
 ```text
-buildcli init                 Add the Build submodule (defaults to the latest tag)
-buildcli init --tag v1.2.3    Add the Build submodule pinned to a specific tag
-buildcli update               Move an existing submodule to the latest tag
-buildcli update --tag v1.2.3  Move an existing submodule to a specific tag
-buildcli status               Show the current submodule path, commit, and tags
-buildcli tags                 List tags advertised by the Build remote
-buildcli repair --strategy stash              Stash local submodule changes, then restore the parent HEAD
-buildcli repair --strategy reset --yes        Discard local changes and restore the parent-recorded HEAD
-buildcli repair --strategy reinit --tag v1.2.3 --yes
-                                              Delete and clone the submodule again at a tagged version
-buildcli build                Run the Build host Default target
-buildcli build TestProjects   Run a specific Cake target in the Build submodule
-buildcli extension            Create build-extensions/{Repo}BuildExtensions
-buildcli extension Framework  Create build-extensions/FrameworkBuildExtensions
+bld                           Run the Default Cake target (same as `bld build`)
+bld init                      Add the Build submodule (defaults to the latest tag)
+bld init --tag v1.2.3         Add the Build submodule pinned to a specific tag
+bld update                    Move an existing submodule to the latest tag
+bld update --tag v1.2.3       Move an existing submodule to a specific tag
+bld status                    Show the current submodule path, commit, and tags
+bld tags                      List tags advertised by the Build remote
+bld repair --strategy stash   Stash local submodule changes, then restore the parent HEAD
+bld repair --strategy reset --yes
+                              Discard local changes and restore the parent-recorded HEAD
+bld repair --strategy reinit --tag v1.2.3 --yes
+                              Delete and clone the submodule again at a tagged version
+bld build                     Run the Build host Default target
+bld build TestProjects        Run a specific Cake target in the Build submodule
+bld extension                 Create build-extensions/{Repo}BuildExtensions
+bld extension Framework       Create build-extensions/FrameworkBuildExtensions
 ```
 
 Common options:
@@ -43,7 +47,7 @@ Existing Ingenium repositories that already use `build` or `Build` as the submod
 
 `repair` can prompt for a strategy when run interactively. `reset` and `reinit` are destructive and require `--yes` in non-interactive use.
 
-`build` restores .NET local tools in the submodule when `.config/dotnet-tools.json` is present, then runs `apps/Build` the same way `./build.sh` does.
+`build` first checks that the Build submodule is registered and checked out. It then restores .NET local tools when `.config/dotnet-tools.json` is present, and runs `apps/Build` the same way `./build.sh` does.
 
 `extension` writes the layout the Build host already imports:
 
@@ -56,7 +60,7 @@ build-extensions/{Name}BuildExtensions/SampleTask.cs
 
 ## Installation
 
-The installer publishes a self-contained `buildcli` binary and places it on your PATH. Git is required. The .NET 8 SDK is installed automatically when it is missing.
+The installer publishes a self-contained `bld` binary and places it on your PATH. Git is required. The .NET 8 SDK is installed automatically when it is missing.
 
 ### macOS and Linux
 
@@ -72,7 +76,7 @@ Or later, once this repository is available remotely:
 curl -sSL https://raw.githubusercontent.com/IngeniumSE/BuildCLI/main/scripts/install.sh | bash
 ```
 
-The default install location is `~/.local/share/ingenium/buildcli`, with a symlink at `~/.local/bin/buildcli`. Add `~/.local/bin` to `PATH` if the installer reports that the command is not visible yet.
+The default install location is `~/.local/share/ingenium/bld`, with a symlink at `~/.local/bin/bld`. Add `~/.local/bin` to `PATH` if the installer reports that the command is not visible yet.
 
 ### Windows
 
@@ -88,7 +92,7 @@ Or later:
 irm https://raw.githubusercontent.com/IngeniumSE/BuildCLI/main/scripts/install.ps1 | iex
 ```
 
-The default install location is `%LOCALAPPDATA%\Ingenium\BuildCli`. That directory is added to the user `PATH`. Open a new terminal before running `buildcli`.
+The default install location is `%LOCALAPPDATA%\Ingenium\bld`. That directory is added to the user `PATH`. Open a new terminal before running `bld`.
 
 ### .NET tool
 

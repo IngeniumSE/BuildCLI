@@ -29,7 +29,7 @@ public sealed class BuildSubmoduleService : IBuildSubmoduleService
 			if (IsInitialized(context))
 			{
 				throw new BuildCliException(
-					$"The Build submodule is already initialized at '{context.RelativePath}'. Use 'buildcli update' to change version.",
+					$"The Build submodule is already initialized at '{context.RelativePath}'. Use '{CliInfo.Name} update' to change version.",
 					ExitCodes.AlreadyInitialized);
 			}
 
@@ -206,7 +206,7 @@ public sealed class BuildSubmoduleService : IBuildSubmoduleService
 		if (requireRegistered && entry is null)
 		{
 			throw new BuildCliException(
-				"The Build submodule is not registered in this repository. Run 'buildcli init' first.",
+				$"The Build submodule is not registered in this repository. Run '{CliInfo.Name} init' first.",
 				ExitCodes.SubmoduleNotFound);
 		}
 
@@ -433,7 +433,7 @@ public sealed class BuildSubmoduleService : IBuildSubmoduleService
 			return null;
 		}
 
-		var message = $"buildcli repair {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss} UTC";
+		var message = $"{CliInfo.Name} repair {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss} UTC";
 		var result = await _git.RunAsync(
 			context.AbsolutePath,
 			["stash", "push", "-u", "-m", message],

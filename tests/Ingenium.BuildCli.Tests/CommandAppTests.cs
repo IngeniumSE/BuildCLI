@@ -5,6 +5,8 @@ using Ingenium.BuildCli.Git;
 using Ingenium.BuildCli.Submodule;
 using Ingenium.BuildCli.Tests.Support;
 
+using Ingenium.BuildCli;
+
 using Microsoft.Extensions.DependencyInjection;
 
 using Spectre.Console.Cli;
@@ -80,6 +82,20 @@ public sealed class CommandAppTests
 
 		Assert.Equal(0, statusExit);
 		Assert.Contains("v1.0.0", console.Output);
+	}
+
+	[Fact]
+	public async Task NoCommand_DefaultsToBuild_AndRequiresInitializedSubmodule()
+	{
+		using var workspace = GitTestWorkspace.Create();
+		var console = new TestConsole();
+		var exitCode = await BuildCliApplication.RunAsync(
+			["--path", workspace.ParentRepo, "--url", workspace.BuildRepo],
+			console,
+			services => services.AddSingleton<IGitClient>(_ => GitTestWorkspace.CreateClient()));
+
+		Assert.Equal(ExitCodes.SubmoduleNotFound, exitCode);
+		Assert.Contains("bld init", console.Output, StringComparison.OrdinalIgnoreCase);
 	}
 
 	[Fact]

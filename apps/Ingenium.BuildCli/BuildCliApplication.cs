@@ -51,11 +51,22 @@ public static class BuildCliApplication
 	}
 
 	/// <summary>
+	/// Runs the CLI, defaulting a bare invocation to <c>build</c>.
+	/// </summary>
+	public static Task<int> RunAsync(
+		string[] args,
+		IAnsiConsole? console = null,
+		Action<IServiceCollection>? configureServices = null)
+	{
+		return Create(console, configureServices).RunAsync(CommandLineDefaults.Apply(args));
+	}
+
+	/// <summary>
 	/// Registers commands, examples, and the global exception handler.
 	/// </summary>
 	public static void Configure(IConfigurator config)
 	{
-		config.SetApplicationName("buildcli");
+		config.SetApplicationName(CliInfo.Name);
 		config.SetApplicationVersion(AppVersion.Current);
 		config.ValidateExamples();
 
@@ -95,7 +106,7 @@ public static class BuildCliApplication
 			.WithExample("repair", "--strategy", "reinit", "--tag", "v1.2.3", "--yes");
 
 		config.AddCommand<BuildCommand>("build")
-			.WithDescription("Run a Cake target through the Build submodule.")
+			.WithDescription("Run a Cake target through the Build submodule. This is the default when no command is passed.")
 			.WithExample("build")
 			.WithExample("build", "TestProjects")
 			.WithExample("build", "Default", "--configuration", "Release");
