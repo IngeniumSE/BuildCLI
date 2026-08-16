@@ -93,6 +93,8 @@ After `bld` is on PATH, later versions can be installed with:
 bld self-update
 ```
 
+`self-update` and `build` look for the .NET SDK on `PATH`, then in `~/.dotnet` (where the installer puts it). The SDK does not need to stay on `PATH` after install.
+
 ### Windows
 
 From a clone:
