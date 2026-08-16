@@ -15,6 +15,14 @@ buildcli update               Move an existing submodule to the latest tag
 buildcli update --tag v1.2.3  Move an existing submodule to a specific tag
 buildcli status               Show the current submodule path, commit, and tags
 buildcli tags                 List tags advertised by the Build remote
+buildcli repair --strategy stash              Stash local submodule changes, then restore the parent HEAD
+buildcli repair --strategy reset --yes        Discard local changes and restore the parent-recorded HEAD
+buildcli repair --strategy reinit --tag v1.2.3 --yes
+                                              Delete and clone the submodule again at a tagged version
+buildcli build                Run the Build host Default target
+buildcli build TestProjects   Run a specific Cake target in the Build submodule
+buildcli extension            Create build-extensions/{Repo}BuildExtensions
+buildcli extension Framework  Create build-extensions/FrameworkBuildExtensions
 ```
 
 Common options:
@@ -32,6 +40,19 @@ Common options:
 `init` and `update` stage `.gitmodules` and the submodule gitlink. They do not create a commit, so you can review the change in the parent repository first.
 
 Existing Ingenium repositories that already use `build` or `Build` as the submodule path are detected automatically.
+
+`repair` can prompt for a strategy when run interactively. `reset` and `reinit` are destructive and require `--yes` in non-interactive use.
+
+`build` restores .NET local tools in the submodule when `.config/dotnet-tools.json` is present, then runs `apps/Build` the same way `./build.sh` does.
+
+`extension` writes the layout the Build host already imports:
+
+```text
+build-extensions/Directory.Build.props
+build-extensions/Directory.Build.targets
+build-extensions/{Name}BuildExtensions/{Name}BuildExtensions.csproj
+build-extensions/{Name}BuildExtensions/SampleTask.cs
+```
 
 ## Installation
 

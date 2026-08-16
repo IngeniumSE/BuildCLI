@@ -1,6 +1,7 @@
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT>.
 
+using Ingenium.BuildCli.Extensions;
 using Ingenium.BuildCli.Submodule;
 
 using Spectre.Console;
@@ -69,6 +70,69 @@ public static class ConsoleWriter
 		table.AddRow("Up to date", FormatUpToDate(status));
 
 		console.Write(table);
+	}
+
+	/// <summary>
+	/// Writes a repair summary.
+	/// </summary>
+	public static void WriteRepair(IAnsiConsole console, RepairResult result)
+	{
+		var table = new Table()
+			.Border(TableBorder.Rounded)
+			.HideHeaders()
+			.AddColumn(new TableColumn("Key").PadRight(2))
+			.AddColumn("Value");
+
+		table.AddRow("[grey]Strategy[/]", Markup.Escape(result.Strategy.ToString().ToLowerInvariant()));
+		table.AddRow("[grey]Path[/]", Markup.Escape(result.Change.RelativePath));
+		table.AddRow("[grey]Ref[/]", Markup.Escape(result.Change.CheckedOutRef));
+		table.AddRow("[grey]Commit[/]", Markup.Escape(ShortSha(result.Change.Commit)));
+		if (!string.IsNullOrEmpty(result.StashRef))
+		{
+			table.AddRow("[grey]Stash[/]", Markup.Escape(result.StashRef));
+		}
+
+		console.Write(table);
+		if (result.Actions.Count > 0)
+		{
+			console.WriteLine();
+			foreach (var action in result.Actions)
+			{
+				console.MarkupLine($"[grey]•[/] {Markup.Escape(action)}");
+			}
+		}
+
+		console.WriteLine();
+		console.MarkupLine("[grey]The submodule change is staged. Commit it in the parent repository when ready.[/]");
+	}
+
+	/// <summary>
+	/// Writes the files created for a build extension.
+	/// </summary>
+	public static void WriteExtension(IAnsiConsole console, BuildExtensionScaffold scaffold)
+	{
+		var table = new Table()
+			.Border(TableBorder.Rounded)
+			.HideHeaders()
+			.AddColumn(new TableColumn("Key").PadRight(2))
+			.AddColumn("Value");
+
+		table.AddRow("[grey]Project[/]", Markup.Escape(scaffold.ProjectName));
+		table.AddRow("[grey]Path[/]", Markup.Escape(Path.GetRelativePath(scaffold.RepositoryRoot, scaffold.ProjectDirectory)));
+		console.Write(table);
+
+		if (scaffold.WrittenFiles.Count > 0)
+		{
+			console.WriteLine();
+			console.MarkupLine("[grey]Files:[/]");
+			foreach (var file in scaffold.WrittenFiles)
+			{
+				console.MarkupLine($"[grey]•[/] {Markup.Escape(Path.GetRelativePath(scaffold.RepositoryRoot, file))}");
+			}
+		}
+
+		console.WriteLine();
+		console.MarkupLine("[grey]The Build host imports every project under build-extensions/ automatically.[/]");
 	}
 
 	/// <summary>

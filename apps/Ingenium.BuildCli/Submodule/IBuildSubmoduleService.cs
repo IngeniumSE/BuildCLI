@@ -27,4 +27,9 @@ public interface IBuildSubmoduleService
 	/// Lists tags advertised by the Build remote.
 	/// </summary>
 	Task<IReadOnlyList<RemoteTag>> ListTagsAsync(BuildSubmoduleRequest request, CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Repairs a dirty or broken Build submodule.
+	/// </summary>
+	Task<RepairResult> RepairAsync(BuildSubmoduleRequest request, RepairStrategy strategy, CancellationToken cancellationToken = default);
 }

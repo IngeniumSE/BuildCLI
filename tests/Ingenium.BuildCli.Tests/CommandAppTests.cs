@@ -27,6 +27,9 @@ public sealed class CommandAppTests
 		Assert.Contains("update", output, StringComparison.OrdinalIgnoreCase);
 		Assert.Contains("status", output, StringComparison.OrdinalIgnoreCase);
 		Assert.Contains("tags", output, StringComparison.OrdinalIgnoreCase);
+		Assert.Contains("repair", output, StringComparison.OrdinalIgnoreCase);
+		Assert.Contains("build", output, StringComparison.OrdinalIgnoreCase);
+		Assert.Contains("extension", output, StringComparison.OrdinalIgnoreCase);
 	}
 
 	[Fact]

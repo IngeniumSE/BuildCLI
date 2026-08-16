@@ -182,6 +182,79 @@ public sealed class BuildSubmoduleServiceTests
 		Assert.True(Directory.Exists(Path.Combine(workspace.ParentRepo, "Build")));
 	}
 
+	[Fact]
+	public async Task Repair_Reset_DiscardsLocalChanges()
+	{
+		using var workspace = GitTestWorkspace.Create();
+		var service = CreateService();
+		var request = new BuildSubmoduleRequest
+		{
+			RepositoryPath = workspace.ParentRepo,
+			Url = workspace.BuildRepo
+		};
+
+		await service.InitAsync(request);
+		var readme = Path.Combine(workspace.ParentRepo, "build", "README.md");
+		var original = File.ReadAllText(readme);
+		File.WriteAllText(readme, "broken locally");
+
+		var result = await service.RepairAsync(request, RepairStrategy.Reset);
+
+		Assert.Equal(RepairStrategy.Reset, result.Strategy);
+		Assert.Equal(original, File.ReadAllText(readme));
+		Assert.Equal(string.Empty, GitTestWorkspace.Git(Path.Combine(workspace.ParentRepo, "build"), "status", "--porcelain"));
+	}
+
+	[Fact]
+	public async Task Repair_Stash_PreservesLocalChanges()
+	{
+		using var workspace = GitTestWorkspace.Create();
+		var service = CreateService();
+		var request = new BuildSubmoduleRequest
+		{
+			RepositoryPath = workspace.ParentRepo,
+			Url = workspace.BuildRepo
+		};
+
+		await service.InitAsync(request);
+		var readme = Path.Combine(workspace.ParentRepo, "build", "README.md");
+		var original = File.ReadAllText(readme);
+		File.WriteAllText(readme, "keep me");
+
+		var result = await service.RepairAsync(request, RepairStrategy.Stash);
+
+		Assert.Equal(original, File.ReadAllText(readme));
+		Assert.False(string.IsNullOrWhiteSpace(result.StashRef));
+		var stashShow = GitTestWorkspace.Git(Path.Combine(workspace.ParentRepo, "build"), "stash", "show", "-p", result.StashRef!);
+		Assert.Contains("keep me", stashShow);
+	}
+
+	[Fact]
+	public async Task Repair_Reinit_ChecksOutRequestedTag()
+	{
+		using var workspace = GitTestWorkspace.Create();
+		var service = CreateService();
+
+		await service.InitAsync(new BuildSubmoduleRequest
+		{
+			RepositoryPath = workspace.ParentRepo,
+			Url = workspace.BuildRepo
+		});
+
+		var result = await service.RepairAsync(
+			new BuildSubmoduleRequest
+			{
+				RepositoryPath = workspace.ParentRepo,
+				Url = workspace.BuildRepo,
+				Tag = "v1.0.0"
+			},
+			RepairStrategy.Reinit);
+
+		Assert.Equal(RepairStrategy.Reinit, result.Strategy);
+		Assert.Equal("v1.0.0", result.Change.CheckedOutRef);
+		Assert.Contains("v1.0.0", GitTestWorkspace.Git(Path.Combine(workspace.ParentRepo, "build"), "tag", "--points-at", "HEAD"));
+	}
+
 	private static BuildSubmoduleService CreateService()
 	{
 		return new BuildSubmoduleService(GitTestWorkspace.CreateClient());

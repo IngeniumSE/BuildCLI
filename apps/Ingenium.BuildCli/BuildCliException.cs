@@ -37,4 +37,7 @@ public static class ExitCodes
 	public const int SubmoduleNotFound = 4;
 	public const int AlreadyInitialized = 5;
 	public const int RefNotFound = 6;
+	public const int Cancelled = 7;
+	public const int BuildFailed = 8;
+	public const int AlreadyExists = 9;
 }

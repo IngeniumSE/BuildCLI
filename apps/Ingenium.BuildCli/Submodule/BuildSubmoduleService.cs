@@ -143,6 +143,58 @@ public sealed class BuildSubmoduleService : IBuildSubmoduleService
 		return await ListRemoteTagsAsync(url, cancellationToken);
 	}
 
+	/// <inheritdoc />
+	public async Task<RepairResult> RepairAsync(BuildSubmoduleRequest request, RepairStrategy strategy, CancellationToken cancellationToken = default)
+	{
+		var context = await CreateContextAsync(request, requireRegistered: true, cancellationToken);
+		var actions = new List<string>();
+		var recorded = await TryGetRecordedCommitAsync(context, cancellationToken);
+		string? stashRef = null;
+
+		switch (strategy)
+		{
+			case RepairStrategy.Stash:
+				await EnsureCheckedOutAsync(context, cancellationToken);
+				stashRef = await TryStashAsync(context, actions, cancellationToken);
+				break;
+			case RepairStrategy.Reset:
+				await EnsureCheckedOutAsync(context, cancellationToken);
+				await ResetHardAsync(context, actions, cancellationToken);
+				break;
+			case RepairStrategy.Reinit:
+				await ReinitializeAsync(context, actions, cancellationToken);
+				break;
+			default:
+				throw new BuildCliException($"Unknown repair strategy '{strategy}'.");
+		}
+
+		string? checkoutRef = request.Tag;
+		if (strategy is RepairStrategy.Stash or RepairStrategy.Reset && string.IsNullOrWhiteSpace(checkoutRef))
+		{
+			checkoutRef = recorded;
+		}
+
+		var previous = await TryGetHeadAsync(context, cancellationToken);
+		var change = await CheckoutRefAsync(context, checkoutRef, added: false, previous, cancellationToken);
+		if (strategy is RepairStrategy.Stash or RepairStrategy.Reset && string.IsNullOrWhiteSpace(request.Tag) && recorded is not null)
+		{
+			actions.Add($"Restored the parent-recorded commit {recorded[..Math.Min(12, recorded.Length)]}.");
+		}
+		else
+		{
+			actions.Add($"Checked out '{change.CheckedOutRef}'.");
+		}
+
+		return new RepairResult
+		{
+			Strategy = strategy,
+			Change = change,
+			RecordedCommit = recorded,
+			StashRef = stashRef,
+			Actions = actions
+		};
+	}
+
 	private async Task<SubmoduleContext> CreateContextAsync(
 		BuildSubmoduleRequest request,
 		bool requireRegistered,
@@ -341,6 +393,133 @@ public sealed class BuildSubmoduleService : IBuildSubmoduleService
 		throw new BuildCliException(
 			"The Build repository has no tags and no default branch could be determined.",
 			ExitCodes.RefNotFound);
+	}
+
+	private async Task<string?> TryGetRecordedCommitAsync(SubmoduleContext context, CancellationToken cancellationToken)
+	{
+		var path = ToGitPath(context.RelativePath);
+		foreach (var spec in new[] { $"HEAD:{path}", $":{path}" })
+		{
+			var result = await _git.RunAsync(context.RepositoryRoot, ["rev-parse", spec], cancellationToken);
+			if (result.IsSuccess)
+			{
+				var sha = result.StandardOutput.Trim();
+				if (!string.IsNullOrEmpty(sha))
+				{
+					return sha;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	private async Task<bool> IsDirtyAsync(SubmoduleContext context, CancellationToken cancellationToken)
+	{
+		if (!IsInitialized(context))
+		{
+			return false;
+		}
+
+		var result = await _git.RunAsync(context.AbsolutePath, ["status", "--porcelain"], cancellationToken);
+		return result.IsSuccess && !string.IsNullOrWhiteSpace(result.StandardOutput);
+	}
+
+	private async Task<string?> TryStashAsync(SubmoduleContext context, List<string> actions, CancellationToken cancellationToken)
+	{
+		if (!await IsDirtyAsync(context, cancellationToken))
+		{
+			actions.Add("No local submodule changes to stash.");
+			return null;
+		}
+
+		var message = $"buildcli repair {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss} UTC";
+		var result = await _git.RunAsync(
+			context.AbsolutePath,
+			["stash", "push", "-u", "-m", message],
+			cancellationToken);
+
+		if (!result.IsSuccess)
+		{
+			if (result.ErrorMessage.Contains("No local changes", StringComparison.OrdinalIgnoreCase))
+			{
+				actions.Add("No local submodule changes to stash.");
+				return null;
+			}
+
+			throw new BuildCliException($"Failed to stash Build submodule changes.{Environment.NewLine}{result.ErrorMessage}");
+		}
+
+		var stashRef = await TryGetLatestStashRefAsync(context, cancellationToken);
+		actions.Add(stashRef is null
+			? "Stashed local submodule changes."
+			: $"Stashed local submodule changes as {stashRef}.");
+		return stashRef;
+	}
+
+	private async Task<string?> TryGetLatestStashRefAsync(SubmoduleContext context, CancellationToken cancellationToken)
+	{
+		var result = await _git.RunAsync(context.AbsolutePath, ["stash", "list", "-n", "1", "--format=%gd"], cancellationToken);
+		if (!result.IsSuccess)
+		{
+			return null;
+		}
+
+		var value = result.StandardOutput.Trim();
+		return string.IsNullOrEmpty(value) ? null : value;
+	}
+
+	private async Task ResetHardAsync(SubmoduleContext context, List<string> actions, CancellationToken cancellationToken)
+	{
+		await _git.RunRequiredAsync(
+			context.AbsolutePath,
+			["reset", "--hard"],
+			"Failed to reset the Build submodule to HEAD.",
+			cancellationToken: cancellationToken);
+		await _git.RunRequiredAsync(
+			context.AbsolutePath,
+			["clean", "-fd"],
+			"Failed to clean untracked files from the Build submodule.",
+			cancellationToken: cancellationToken);
+		actions.Add("Discarded local submodule changes and untracked files.");
+	}
+
+	private async Task ReinitializeAsync(SubmoduleContext context, List<string> actions, CancellationToken cancellationToken)
+	{
+		var deinit = await _git.RunAsync(
+			context.RepositoryRoot,
+			["submodule", "deinit", "-f", "--", ToGitPath(context.RelativePath)],
+			cancellationToken);
+		if (deinit.IsSuccess)
+		{
+			actions.Add("Deinitialized the Build submodule.");
+		}
+
+		TryDeleteDirectory(context.AbsolutePath);
+		TryDeleteDirectory(Path.Combine(context.RepositoryRoot, ".git", "modules", context.RelativePath.Replace('/', Path.DirectorySeparatorChar)));
+		actions.Add("Removed the submodule working tree and cached git directory.");
+
+		await _git.RunRequiredAsync(
+			context.RepositoryRoot,
+			["submodule", "update", "--init", "--force", "--", ToGitPath(context.RelativePath)],
+			"Failed to re-initialize the Build submodule.",
+			cancellationToken: cancellationToken);
+		actions.Add("Re-initialized the Build submodule from the recorded URL.");
+	}
+
+	private static void TryDeleteDirectory(string path)
+	{
+		if (!Directory.Exists(path))
+		{
+			return;
+		}
+
+		foreach (var info in new DirectoryInfo(path).EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+		{
+			info.Attributes &= ~FileAttributes.ReadOnly;
+		}
+
+		Directory.Delete(path, recursive: true);
 	}
 
 	private async Task<string?> TryGetHeadAsync(SubmoduleContext context, CancellationToken cancellationToken)

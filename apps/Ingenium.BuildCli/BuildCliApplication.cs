@@ -2,8 +2,11 @@
 // For a copy, see <https://opensource.org/licenses/MIT>.
 
 using Ingenium.BuildCli.Commands;
+using Ingenium.BuildCli.Extensions;
 using Ingenium.BuildCli.Git;
+using Ingenium.BuildCli.Host;
 using Ingenium.BuildCli.Infrastructure;
+using Ingenium.BuildCli.Execution;
 using Ingenium.BuildCli.Rendering;
 using Ingenium.BuildCli.Submodule;
 
@@ -28,7 +31,10 @@ public static class BuildCliApplication
 		services.AddSingleton(console ?? AnsiConsole.Console);
 		services.AddSingleton<IGitTrace, AnsiConsoleGitTrace>();
 		services.AddSingleton<IGitClient>(provider => new GitClient(trace: provider.GetRequiredService<IGitTrace>()));
+		services.AddSingleton<IProcessRunner>(provider => new ProcessRunner(provider.GetRequiredService<IGitTrace>()));
 		services.AddSingleton<IBuildSubmoduleService, BuildSubmoduleService>();
+		services.AddSingleton<IBuildHostService, BuildHostService>();
+		services.AddSingleton<IBuildExtensionService, BuildExtensionService>();
 		configureServices?.Invoke(services);
 
 		var app = new CommandApp(new TypeRegistrar(services));
@@ -81,5 +87,22 @@ public static class BuildCliApplication
 			.WithDescription("List tags available on the Build remote.")
 			.WithExample("tags")
 			.WithExample("tags", "--https");
+
+		config.AddCommand<RepairCommand>("repair")
+			.WithDescription("Repair a dirty or broken Build submodule.")
+			.WithExample("repair", "--strategy", "stash")
+			.WithExample("repair", "--strategy", "reset", "--yes")
+			.WithExample("repair", "--strategy", "reinit", "--tag", "v1.2.3", "--yes");
+
+		config.AddCommand<BuildCommand>("build")
+			.WithDescription("Run a Cake target through the Build submodule.")
+			.WithExample("build")
+			.WithExample("build", "TestProjects")
+			.WithExample("build", "Default", "--configuration", "Release");
+
+		config.AddCommand<ExtensionCommand>("extension")
+			.WithDescription("Create a Cake build-extension project in build-extensions/.")
+			.WithExample("extension")
+			.WithExample("extension", "Framework");
 	}
 }
