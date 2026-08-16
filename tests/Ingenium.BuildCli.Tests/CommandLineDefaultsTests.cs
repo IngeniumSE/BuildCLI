@@ -32,4 +32,34 @@ public sealed class CommandLineDefaultsTests
 			["build", "--path", "./src", "--configuration", "Release"],
 			CommandLineDefaults.Apply(["--path", "./src", "--configuration", "Release"]));
 	}
+
+	[Fact]
+	public void Apply_ForwardsUnknownCommandAsCakeTarget()
+	{
+		Assert.Equal(["build", "Test"], CommandLineDefaults.Apply(["Test"]));
+		Assert.Equal(["build", "Publish"], CommandLineDefaults.Apply(["Publish"]));
+	}
+
+	[Fact]
+	public void Apply_KeepsCliOptionsAndForwardsCakeArguments()
+	{
+		Assert.Equal(
+			["build", "Publish", "--path", "./src", "--", "--publish", "--nuget", "--token", "abc"],
+			CommandLineDefaults.Apply(["Publish", "--path", "./src", "--publish", "--nuget", "--token", "abc"]));
+	}
+
+	[Fact]
+	public void Apply_NormalizesExplicitBuildCommandCakeArguments()
+	{
+		Assert.Equal(
+			["build", "Test", "--configuration", "Release", "--", "--verbosity", "Diagnostic"],
+			CommandLineDefaults.Apply(["build", "Test", "--configuration", "Release", "--verbosity", "Diagnostic"]));
+	}
+
+	[Fact]
+	public void IsKnownCommand_RecognizesFirstClassCommands()
+	{
+		Assert.True(CommandLineDefaults.IsKnownCommand("init"));
+		Assert.False(CommandLineDefaults.IsKnownCommand("Test"));
+	}
 }

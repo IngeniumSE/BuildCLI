@@ -85,6 +85,21 @@ public sealed class CommandAppTests
 	}
 
 	[Fact]
+	public async Task UnknownCommand_ForwardsToBuildTarget()
+	{
+		using var workspace = GitTestWorkspace.Create();
+		var console = new TestConsole();
+		var exitCode = await BuildCliApplication.RunAsync(
+			["Test", "--path", workspace.ParentRepo, "--url", workspace.BuildRepo],
+			console,
+			services => services.AddSingleton<IGitClient>(_ => GitTestWorkspace.CreateClient()));
+
+		Assert.Equal(ExitCodes.SubmoduleNotFound, exitCode);
+		Assert.Contains("bld init", console.Output, StringComparison.OrdinalIgnoreCase);
+		Assert.DoesNotContain("Unknown command", console.Output, StringComparison.OrdinalIgnoreCase);
+	}
+
+	[Fact]
 	public async Task NoCommand_DefaultsToBuild_AndRequiresInitializedSubmodule()
 	{
 		using var workspace = GitTestWorkspace.Create();

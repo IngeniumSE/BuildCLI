@@ -10,8 +10,12 @@ Run `bld` from any git repository that should host the Build submodule.
 
 A bare `bld` (no command) runs `build` after verifying that the Build submodule is initialized. If it is missing, the CLI stops and tells you to run `bld init`.
 
+Any unknown command is forwarded to the Build host as a Cake target, so `bld Test` is the same as `bld build Test`. Extra Cake arguments are passed through; `bld`'s own options (`--path`, `--configuration`, and so on) are still parsed by the CLI.
+
 ```text
 bld                           Run the Default Cake target (same as `bld build`)
+bld Test                      Run the Cake Test target (unknown commands are forwarded)
+bld Publish --publish --nuget Run a Cake target and pass extra host arguments
 bld init                      Add the Build submodule (defaults to the latest tag)
 bld init --tag v1.2.3         Add the Build submodule pinned to a specific tag
 bld update                    Move an existing submodule to the latest tag
@@ -47,7 +51,7 @@ Existing Ingenium repositories that already use `build` or `Build` as the submod
 
 `repair` can prompt for a strategy when run interactively. `reset` and `reinit` are destructive and require `--yes` in non-interactive use.
 
-`build` first checks that the Build submodule is registered and checked out. It then restores .NET local tools when `.config/dotnet-tools.json` is present, and runs `apps/Build` the same way `./build.sh` does.
+`build` first checks that the Build submodule is registered and checked out. It then restores .NET local tools when `.config/dotnet-tools.json` is present, and runs `apps/Build` the same way `./build.sh` does. Unknown commands such as `Test`, `Pack`, or a build-extension task name are forwarded to that host as `--target` values.
 
 `extension` writes the layout the Build host already imports:
 
