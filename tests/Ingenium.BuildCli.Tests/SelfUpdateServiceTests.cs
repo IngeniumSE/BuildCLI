@@ -75,7 +75,7 @@ public sealed class SelfUpdateServiceTests
 
 		var error = await Assert.ThrowsAsync<BuildCliException>(() => service.UpdateAsync(new SelfUpdateRequest()));
 		Assert.Equal(ExitCodes.BuildFailed, error.ExitCode);
-		Assert.Contains("dotnet", error.Message, StringComparison.OrdinalIgnoreCase);
+		Assert.Contains(".NET SDK", error.Message, StringComparison.Ordinal);
 	}
 
 	[Fact]
